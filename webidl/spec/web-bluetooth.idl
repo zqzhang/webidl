@@ -1,0 +1,143 @@
+dictionary BluetoothScanFilter {
+  sequence<BluetoothServiceUUID> services;
+  DOMString name;
+  DOMString namePrefix;
+};
+
+dictionary RequestDeviceOptions {
+  required sequence<BluetoothScanFilter> filters;
+  sequence<BluetoothServiceUUID> optionalServices = [];
+};
+
+interface Bluetooth {
+  Promise<BluetoothDevice> requestDevice(RequestDeviceOptions options);
+};
+Bluetooth implements EventTarget;
+Bluetooth implements CharacteristicEventHandlers;
+Bluetooth implements ServiceEventHandlers;
+
+// Allocation authorities for Vendor IDs:
+enum VendorIDSource {
+  "bluetooth",
+  "usb"
+};
+
+interface BluetoothDevice {
+  readonly attribute DOMString id;
+  readonly attribute DOMString? name;
+  readonly attribute BluetoothAdvertisingData adData;
+  readonly attribute unsigned long? deviceClass;
+  readonly attribute VendorIDSource? vendorIDSource;
+  readonly attribute unsigned long? vendorID;
+  readonly attribute unsigned long? productID;
+  readonly attribute unsigned long? productVersion;
+  readonly attribute boolean paired;
+  readonly attribute BluetoothGATTRemoteServer? gattServer;
+  readonly attribute UUID[] uuids;
+  Promise<BluetoothGATTRemoteServer> connectGATT();
+};
+BluetoothDevice implements EventTarget;
+BluetoothDevice implements CharacteristicEventHandlers;
+BluetoothDevice implements ServiceEventHandlers;
+
+interface BluetoothAdvertisingData {
+  readonly attribute unsigned short? appearance;
+  readonly attribute byte? txPower;
+  readonly attribute byte? rssi;
+  readonly attribute Map manufacturerData;
+  readonly attribute Map serviceData;
+};
+
+interface BluetoothGATTRemoteServer {
+  readonly attribute BluetoothDevice device;
+  readonly attribute boolean connected;
+  void disconnect();
+  Promise<BluetoothGATTService> getPrimaryService(BluetoothServiceUUID service);
+  Promise<sequence<BluetoothGATTService>>
+    getPrimaryServices(optional BluetoothServiceUUID service);
+};
+BluetoothGATTRemoteServer implements EventTarget;
+BluetoothGATTRemoteServer implements CharacteristicEventHandlers;
+BluetoothGATTRemoteServer implements ServiceEventHandlers;
+
+interface BluetoothGATTService {
+  readonly attribute BluetoothDevice device;
+  readonly attribute UUID uuid;
+  readonly attribute boolean isPrimary;
+  Promise<BluetoothGATTCharacteristic>
+    getCharacteristic(BluetoothCharacteristicUUID characteristic);
+  Promise<sequence<BluetoothGATTCharacteristic>>
+    getCharacteristics(optional BluetoothCharacteristicUUID characteristic);
+  Promise<BluetoothGATTService>
+    getIncludedService(BluetoothServiceUUID service);
+  Promise<sequence<BluetoothGATTService>>
+    getIncludedServices(optional BluetoothServiceUUID service);
+};
+BluetoothGATTService implements EventTarget;
+BluetoothGATTService implements CharacteristicEventHandlers;
+BluetoothGATTService implements ServiceEventHandlers;
+
+interface BluetoothGATTCharacteristic {
+  readonly attribute BluetoothGATTService service;
+  readonly attribute UUID uuid;
+  readonly attribute BluetoothCharacteristicProperties properties;
+  readonly attribute ArrayBuffer? value;
+  Promise<BluetoothGATTDescriptor> getDescriptor(BluetoothDescriptorUUID descriptor);
+  Promise<sequence<BluetoothGATTDescriptor>>
+    getDescriptors(optional BluetoothDescriptorUUID descriptor);
+  Promise<ArrayBuffer> readValue();
+  Promise<void> writeValue(BufferSource value);
+  Promise<void> startNotifications();
+  Promise<void> stopNotifications();
+};
+BluetoothGATTCharacteristic implements EventTarget;
+BluetoothGATTCharacteristic implements CharacteristicEventHandlers;
+
+interface BluetoothCharacteristicProperties {
+  readonly attribute boolean broadcast;
+  readonly attribute boolean read;
+  readonly attribute boolean writeWithoutResponse;
+  readonly attribute boolean write;
+  readonly attribute boolean notify;
+  readonly attribute boolean indicate;
+  readonly attribute boolean authenticatedSignedWrites;
+  readonly attribute boolean reliableWrite;
+  readonly attribute boolean writableAuxiliaries;
+};
+
+interface BluetoothGATTDescriptor {
+  readonly attribute BluetoothGATTCharacteristic characteristic;
+  readonly attribute UUID uuid;
+  readonly attribute ArrayBuffer? value;
+  Promise<ArrayBuffer> readValue();
+  Promise<void> writeValue(BufferSource value);
+};
+
+[NoInterfaceObject]
+interface CharacteristicEventHandlers {
+  attribute EventHandler oncharacteristicvaluechanged;
+};
+
+[NoInterfaceObject]
+interface ServiceEventHandlers {
+  attribute EventHandler onserviceadded;
+  attribute EventHandler onservicechanged;
+  attribute EventHandler onserviceremoved;
+};
+
+typedef DOMString UUID;
+interface BluetoothUUID {
+  static UUID getService((DOMString or unsigned long) name);
+  static UUID getCharacteristic((DOMString or unsigned long) name);
+  static UUID getDescriptor((DOMString or unsigned long) name);
+
+  static UUID canonicalUUID([EnforceRange] unsigned long alias);
+};
+
+typedef (DOMString or unsigned long) BluetoothServiceUUID;
+typedef (DOMString or unsigned long) BluetoothCharacteristicUUID;
+typedef (DOMString or unsigned long) BluetoothDescriptorUUID;
+
+partial interface Navigator {
+  readonly attribute Bluetooth bluetooth;
+};
